@@ -1,3 +1,12 @@
+@font-face {
+  font-family: 'Kiwi Soda';
+  src: url('./assets/fonts/KiwiSoda.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+
 :root {
   --bg: #0b120d;
   --fg: #658053;
@@ -41,10 +50,10 @@ body {
 #overlay.hidden { display: none; }
 
 #overlay h1 {
-  margin: 0;
-  font-size: clamp(2rem, 10vw, 4rem);
-  letter-spacing: 0.3em;
-  text-indent: 0.3em;
+  font-family: 'Kiwi Soda', system-ui, sans-serif;
+  font-size: 64px;
+  letter-spacing: 0.1em;
+  text-indent: 0.1em;
 }
 
 .keys { margin: 0; opacity: 0.6; letter-spacing: 0.2em; }
@@ -55,6 +64,5 @@ body {
   color: var(--bg);
   background: var(--accent);
   border: 0;
-  border-radius: 999px;
   cursor: pointer;
 }
