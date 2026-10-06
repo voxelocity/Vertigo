@@ -1,19 +1,27 @@
 {
   "title": "LAST TIME",
   "artist": "Milkoi",
-  "audio": "songs/Milkoi - LAST TIME [NCS Release].mp3",
+  "audio": "songs/last-time.mp3",
 
   "bpm": 120,
   "offset": 0,
 
   "notes": [
-    { "beat": 4, "lane": "L" },
-    { "beat": 5, "lane": "R" },
-    { "beat": 6, "lane": "L" },
-    { "beat": 7, "lane": "R" },
-    { "beat": 8, "lane": "L" },
-    { "beat": 8.5, "lane": "R" },
-    { "beat": 9, "lane": "L" },
-    { "beat": 10, "lane": "R" }
+    { "beat": 4, "side": "L" },
+    { "beat": 5, "side": "R" },
+    { "beat": 6, "side": "L" },
+    { "beat": 7, "side": "R" },
+
+    { "beat": 8, "side": "L", "length": 2 },
+    { "beat": 11, "side": "R" },
+
+    { "beat": 12, "side": "L" },
+    { "beat": 12.5, "side": "R" },
+    { "beat": 13, "side": "L" },
+    { "beat": 13.5, "side": "R" },
+
+    { "beat": 14, "side": "R", "length": 4 },
+    { "beat": 19, "side": "L" },
+    { "beat": 20, "side": "L" }
   ]
 }

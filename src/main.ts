@@ -1,11 +1,8 @@
 import './style.css';
-import { load, start, songTime } from './conductor';
-
-const SONG = 'songs/last-time.mp3';
+import { boot, startGame } from './game';
 
 const WIDTH = 960;
 const HEIGHT = 540;
-const BG = '#132630';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game');
 const overlay = document.querySelector<HTMLDivElement>('#overlay');
@@ -35,7 +32,7 @@ window.addEventListener('resize', resize);
 startButton.disabled = true;
 startButton.textContent = 'Loading...';
 
-load(SONG)
+boot()
     .then(() => {
         startButton.disabled = false;
         startButton.textContent = 'Click to play';
@@ -47,19 +44,5 @@ load(SONG)
 
 startButton.addEventListener('click', () => {
     overlay.classList.add('hidden');
-    start();
+    startGame(ctx);
 });
-
-function frame() {
-    ctx!.fillStyle = BG;
-    ctx!.fillRect(0, 0, WIDTH, HEIGHT);
-
-    ctx!.fillStyle = '#fff';
-    ctx!.font = '24px monospace';
-    ctx!.fillText(songTime().toFixed(3), 20, 40);
-
-    requestAnimationFrame(frame);
-}
-
-requestAnimationFrame(frame);
-
