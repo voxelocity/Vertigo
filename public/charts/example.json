@@ -1,0 +1,19 @@
+{
+  "title": "LAST TIME",
+  "artist": "Milkoi",
+  "audio": "songs/Milkoi - LAST TIME [NCS Release].mp3",
+
+  "bpm": 120,
+  "offset": 0,
+
+  "notes": [
+    { "beat": 4, "lane": "L" },
+    { "beat": 5, "lane": "R" },
+    { "beat": 6, "lane": "L" },
+    { "beat": 7, "lane": "R" },
+    { "beat": 8, "lane": "L" },
+    { "beat": 8.5, "lane": "R" },
+    { "beat": 9, "lane": "L" },
+    { "beat": 10, "lane": "R" }
+  ]
+}

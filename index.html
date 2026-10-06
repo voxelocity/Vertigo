@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vertigo</title>
+  </head>
+  <body>
+    <canvas id="game" width="640" height="900"></canvas>
+
+    <!-- Browsers refuse to start audio without a user gesture.
+         This overlay IS that gesture. Don't remove it. -->
+    <div id="overlay">
+      <h1>VERTIGO</h1>
+      <p class="keys">&larr; and &rarr;</p>
+      <button id="start">Click to play</button>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

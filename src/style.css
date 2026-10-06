@@ -1,0 +1,60 @@
+:root {
+  --bg: #0b120d;
+  --fg: #658053;
+  --accent: #dab41a;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+
+body {
+  display: grid;
+  place-items: center;
+}
+
+#game {
+  display: block;
+  max-height: 100vh;
+  touch-action: none;
+}
+
+/* Click-to-play screen. Remove the .hidden class to dismiss it. */
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  background: var(--bg);
+  text-align: center;
+}
+
+#overlay.hidden { display: none; }
+
+#overlay h1 {
+  margin: 0;
+  font-size: clamp(2rem, 10vw, 4rem);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+
+.keys { margin: 0; opacity: 0.6; letter-spacing: 0.2em; }
+
+#start {
+  padding: 0.75rem 2rem;
+  font: inherit;
+  color: var(--bg);
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}

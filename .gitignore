@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-ssr/
+
+# Personal build guide — not part of the shipped project
+guide.md
+
+*.local
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
