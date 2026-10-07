@@ -4,6 +4,7 @@ import { load as loadAudio, start as startAudio, songTime } from './conductor';
 import { startInput } from './input';
 import { isComplete, newGameState, press, release, update } from './judge';
 import { draw } from './renderer';
+import { loadSprites } from './sprites';
 
 const CHART_URL = 'charts/example.json';
 
@@ -12,7 +13,10 @@ let chart: Chart | null = null;
 /** Load the chart and the song. Call once, behind the title screen. */
 export async function boot(): Promise<void> {
     chart = await loadChart(CHART_URL);
-    await loadAudio(chart.audio);
+
+    // Decode the song and every sprite before the button unlocks, so nothing
+    // has to be fetched or decoded once the clock is running.
+    await Promise.all([loadAudio(chart.audio), loadSprites()]);
 }
 
 /** Begin a run. Must be called from a user gesture (the click handler). */

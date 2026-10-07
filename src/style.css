@@ -8,9 +8,9 @@
 
 
 :root {
-  --bg: #0b120d;
-  --fg: #658053;
-  --accent: #dab41a;
+  --bg: #12082d;
+  --fg: #536a80;
+  --accent: #ff62a8;
 }
 
 * { box-sizing: border-box; }

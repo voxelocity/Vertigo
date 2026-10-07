@@ -1,5 +1,6 @@
 import type { GameState, Judgement, Note, Side } from './types';
 import { readWaveform, WAVE_SIZE } from './conductor';
+import { getSprites } from './sprites';
 
 // --- layout -----------------------------------------------------------------
 
@@ -14,8 +15,12 @@ const TRACK_Y = 340;
 
 const NOTE_SIZE = 36;
 const HOLD_HEIGHT = 28;
-const PLAYER_W = 56;
-const PLAYER_H = 88;
+
+/** Sprites are 64x64, drawn at a whole 2x so the pixels stay square. */
+const PLAYER_DRAW = 128;
+
+/** Roughly how wide the character reads. Used to space the hit markers. */
+const PLAYER_BODY = 88;
 
 const MARKER_W = 3;
 const MARKER_H = 58;
@@ -24,9 +29,10 @@ const MARKER_H = 58;
 
 /**
  * How far from the centre a note should come to rest. Far enough clear of the
- * player that the two never overlap -- that gap is what the markers sit in.
+ * player that the two never overlap -- that gap is what the markers sit in,
+ * and it's roughly where the slash arcs reach.
  */
-const HIT_OFFSET = PLAYER_W / 2 + NOTE_SIZE / 2 + 10;
+const HIT_OFFSET = PLAYER_BODY / 2 + NOTE_SIZE / 2 + 10;
 
 const HIT_X_LEFT = CENTER_X - HIT_OFFSET;
 const HIT_X_RIGHT = CENTER_X + HIT_OFFSET;
@@ -50,6 +56,12 @@ const SLICE_SPREAD = 70;
 
 /** Pixels a held tail splits apart, per pixel travelled past the line. */
 const HOLD_SPLIT_RATE = 0.3;
+
+/** How long the character holds a slash pose after a hit, in seconds. */
+const SLASH_TIME = 0.18;
+
+/** Seconds per idle frame. Slow enough to read as breathing, not twitching. */
+const IDLE_FRAME_TIME = 0.4;
 
 // --- colours ----------------------------------------------------------------
 
@@ -100,6 +112,12 @@ const slices: Slice[] = [];
  */
 const cut = new WeakSet<Note>();
 
+/** Notes we've already swung at, so each one triggers one slash. */
+const swung = new WeakSet<Note>();
+
+/** Song time of the most recent swing on each side. */
+const lastSlash: Record<Side, number> = { L: -Infinity, R: -Infinity };
+
 // ---------------------------------------------------------------------------
 
 export function draw(
@@ -108,6 +126,7 @@ export function draw(
     songTime: number,
 ): void {
     collectSlices(state, songTime);
+    trackSlashes(state, songTime);
 
     drawBackground(ctx);
     drawTrack(ctx);
@@ -115,7 +134,7 @@ export function draw(
     drawMarkers(ctx);
     drawNotes(ctx, state, songTime);
     drawSlices(ctx, songTime);
-    drawPlayer(ctx);
+    drawPlayer(ctx, state, songTime);
     drawHud(ctx, state, songTime);
 }
 
@@ -194,21 +213,64 @@ function drawMarkers(ctx: CanvasRenderingContext2D): void {
     }
 }
 
-function drawPlayer(ctx: CanvasRenderingContext2D): void {
+/**
+ * Which pose the character is in right now.
+ *
+ * Priority runs most-specific first: a fresh swing beats a hold, a hold beats
+ * standing still.
+ */
+function poseFor(
+    state: GameState,
+    songTime: number,
+): HTMLImageElement | null {
+    const set = getSprites();
+    if (!set) return null;
+
+    const ageL = songTime - lastSlash.L;
+    const ageR = songTime - lastSlash.R;
+    const liveL = ageL >= 0 && ageL < SLASH_TIME;
+    const liveR = ageR >= 0 && ageR < SLASH_TIME;
+
+    if (liveL && liveR) return set.dual;
+    if (liveL) return set.left;
+    if (liveR) return set.right;
+    if (anyHolding(state, songTime)) return set.start;
+
+    const frame = Math.floor(songTime / IDLE_FRAME_TIME) % 2;
+    return frame === 0 ? set.idle1 : set.idle2;
+}
+
+function drawPlayer(
+    ctx: CanvasRenderingContext2D,
+    state: GameState,
+    songTime: number,
+): void {
     // The offset shadow is what sells a flat shape as a standing cutout.
+    // On a sprite it follows the transparency, so it traces the silhouette.
     ctx.save();
     ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
     ctx.shadowOffsetX = 5;
     ctx.shadowOffsetY = 7;
     ctx.shadowBlur = 6;
 
-    ctx.fillStyle = PLAYER;
-    ctx.fillRect(
-        CENTER_X - PLAYER_W / 2,
-        TRACK_Y - PLAYER_H / 2,
-        PLAYER_W,
-        PLAYER_H,
-    );
+    const sprite = poseFor(state, songTime);
+
+    if (sprite) {
+        // Pixel art: no interpolation, and land on whole pixels.
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(
+            sprite,
+            Math.round(CENTER_X - PLAYER_DRAW / 2),
+            Math.round(TRACK_Y - PLAYER_DRAW / 2),
+            PLAYER_DRAW,
+            PLAYER_DRAW,
+        );
+    } else {
+        // Sprites not loaded yet -- fall back to the old block.
+        ctx.fillStyle = PLAYER;
+        ctx.fillRect(CENTER_X - 28, TRACK_Y - 44, 56, 88);
+    }
+
     ctx.restore();
 }
 
@@ -366,6 +428,41 @@ function collectSlices(state: GameState, songTime: number): void {
             bornAt: songTime,
         });
     }
+}
+
+/**
+ * Note the moment each side was successfully struck, so the character can
+ * swing. Fires when a hold *starts*, not when it finishes -- that's when the
+ * key actually went down.
+ */
+function trackSlashes(state: GameState, songTime: number): void {
+    const notes = state.chart.notes;
+    const start = Math.max(0, state.cursor - 8);
+
+    for (let i = start; i < notes.length; i++) {
+        const note = notes[i];
+        if (note.time - songTime > APPROACH) break;
+        if (note.state === 'pending' || swung.has(note)) continue;
+
+        swung.add(note);
+
+        // 'missed' and 'dropped' also leave pending -- no swing for those.
+        if (note.state === 'hit' || note.state === 'holding') {
+            lastSlash[note.side] = songTime;
+        }
+    }
+}
+
+/** Is a hold in progress? Drives the braced stance. */
+function anyHolding(state: GameState, songTime: number): boolean {
+    const notes = state.chart.notes;
+
+    for (let i = state.cursor; i < notes.length; i++) {
+        const note = notes[i];
+        if (note.time > songTime) break;
+        if (note.state === 'holding') return true;
+    }
+    return false;
 }
 
 /** The two halves of a cut note, drifting apart and fading out. */
