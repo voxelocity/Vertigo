@@ -25,6 +25,9 @@ const SCORE: Record<Judgement, number> = {
 /** Extra points for seeing a hold through to the end. */
 const HOLD_BONUS = 150;
 
+/** Points lost for pressing when no note is in range. */
+const STRAY_PENALTY = 150;
+
 // ---------------------------------------------------------------------------
 
 export function newGameState(chart: Chart): GameState {
@@ -47,7 +50,10 @@ export function newGameState(chart: Chart): GameState {
  */
 export function press(state: GameState, side: Side, time: number): void {
     const note = nearestPending(state, side, time);
-    if (!note) return;
+    if (!note) {
+        registerStray(state, time);
+        return;
+    }
 
     const error = Math.abs(note.time - time);
     const judgement: Judgement = error <= PERFECT_WINDOW ? 'perfect' : 'good';
@@ -177,6 +183,19 @@ function award(
 function registerMiss(state: GameState, time: number): void {
     state.combo = 0;
     state.counts.miss += 1;
+    state.lastJudgement = { judgement: 'miss', at: time };
+}
+
+/**
+ * Pressed at nothing. Costs points and breaks the combo, which is what stops
+ * mashing both keys from being a winning strategy.
+ *
+ * Deliberately does NOT touch `counts` -- that's the tally of how the chart
+ * went, and a stray press didn't invent a note to miss.
+ */
+function registerStray(state: GameState, time: number): void {
+    state.score = Math.max(0, state.score - STRAY_PENALTY);
+    state.combo = 0;
     state.lastJudgement = { judgement: 'miss', at: time };
 }
 

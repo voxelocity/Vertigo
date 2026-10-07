@@ -1,5 +1,15 @@
 const ctx = new AudioContext();
 
+const  analyser = ctx.createAnalyser();
+analyser.fftSize = 1024
+analyser.connect(ctx.destination);
+
+export const WAVE_SIZE = analyser.fftSize
+
+export function readWaveform(out: Uint8Array<ArrayBuffer>): void {
+    analyser.getByteTimeDomainData(out);
+}
+
 let buffer: AudioBuffer | null = null;
 let source: AudioBufferSourceNode | null = null;
 let startTime = 0;
@@ -25,7 +35,7 @@ export async function start(): Promise<void> {
 
     source = ctx.createBufferSource();
     source.buffer = buffer;
-    source.connect(ctx.destination);
+    source.connect(analyser);
 
     // These two lines belong together. Anything between them is error.
     source.start();
