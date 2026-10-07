@@ -22,6 +22,9 @@ const PLAYER_DRAW = 128;
 /** Roughly how wide the character reads. Used to space the hit markers. */
 const PLAYER_BODY = 88;
 
+/** Track.png is 480x32, drawn at the same 2x -- exactly the canvas width. */
+const TRACK_H = 64;
+
 const MARKER_W = 3;
 const MARKER_H = 58;
 
@@ -32,7 +35,7 @@ const MARKER_H = 58;
  * player that the two never overlap -- that gap is what the markers sit in,
  * and it's roughly where the slash arcs reach.
  */
-const HIT_OFFSET = PLAYER_BODY / 2 + NOTE_SIZE / 2 + 10;
+const HIT_OFFSET = PLAYER_BODY / 2 + NOTE_SIZE / 2 + 20;
 
 const HIT_X_LEFT = CENTER_X - HIT_OFFSET;
 const HIT_X_RIGHT = CENTER_X + HIT_OFFSET;
@@ -201,6 +204,23 @@ function drawWave(ctx: CanvasRenderingContext2D): void {
 }
 
 function drawTrack(ctx: CanvasRenderingContext2D): void {
+    const set = getSprites();
+
+    if (set) {
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(
+            set.track,
+            0,
+            Math.round(TRACK_Y - TRACK_H / 2),
+            WIDTH,
+            TRACK_H,
+        );
+        ctx.restore();
+        return;
+    }
+
+    // Not loaded yet -- plain band.
     ctx.fillStyle = TRACK;
     ctx.fillRect(0, TRACK_Y - NOTE_SIZE / 2 - 8, WIDTH, NOTE_SIZE + 16);
 }

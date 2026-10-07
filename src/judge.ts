@@ -5,16 +5,16 @@ import type { Chart, GameState, Judgement, Note, Side } from './types';
 // ---------------------------------------------------------------------------
 
 /** Press within this of the note's time and it's a Perfect. */
-export const PERFECT_WINDOW = 0.04;
+export const PERFECT_WINDOW = 0.05;
 
 /** Press within this and it's a Good. Outside it, the press is ignored. */
-export const GOOD_WINDOW = 0.1;
+export const GOOD_WINDOW = 0.13;
 
 /**
  * How early you may let go of a hold and still get credit. Deliberately
  * looser than the press windows -- releases are harder to time than presses.
  */
-export const RELEASE_WINDOW = 0.12;
+export const RELEASE_WINDOW = 0.15;
 
 const SCORE: Record<Judgement, number> = {
     perfect: 300,
