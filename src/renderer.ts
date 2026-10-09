@@ -1,6 +1,7 @@
 import type { GameState, Judgement, Note, Side } from './types';
 import { readWaveform, WAVE_SIZE } from './conductor';
 import { getSprites } from './sprites';
+import { pixelText, subFont } from './ui';
 
 // --- layout -----------------------------------------------------------------
 
@@ -122,6 +123,13 @@ const swung = new WeakSet<Note>();
 const lastSlash: Record<Side, number> = { L: -Infinity, R: -Infinity };
 
 // ---------------------------------------------------------------------------
+
+/** Forget the last run's slices and swings. Call before starting a new one. */
+export function resetEffects(): void {
+    slices.length = 0;
+    lastSlash.L = -Infinity;
+    lastSlash.R = -Infinity;
+}
 
 export function draw(
     ctx: CanvasRenderingContext2D,
@@ -526,16 +534,14 @@ function drawHud(
     ctx.save();
 
     ctx.fillStyle = TEXT;
-    ctx.textAlign = 'left';
-    ctx.font = '20px system-ui, sans-serif';
-    ctx.fillText(`SCORE ${state.score}`, 24, 44);
+    ctx.font = subFont(16);
+    pixelText(ctx, `SCORE ${state.score}`, 24, 44);
 
     if (state.combo > 1) {
-        ctx.textAlign = 'center';
-        ctx.font = '48px system-ui, sans-serif';
-        ctx.fillText(`${state.combo}`, CENTER_X, 110);
-        ctx.font = '14px system-ui, sans-serif';
-        ctx.fillText('COMBO', CENTER_X, 134);
+        ctx.font = subFont(48);
+        pixelText(ctx, `${state.combo}`, CENTER_X, 110, 'center');
+        ctx.font = subFont(16);
+        pixelText(ctx, 'COMBO', CENTER_X, 134, 'center');
     }
 
     const last = state.lastJudgement;
@@ -545,12 +551,13 @@ function drawHud(
             // Fade out and drift upwards as it ages.
             ctx.globalAlpha = 1 - age / POPUP_TIME;
             ctx.fillStyle = JUDGEMENT_COLOUR[last.judgement];
-            ctx.textAlign = 'center';
-            ctx.font = '34px system-ui, sans-serif';
-            ctx.fillText(
+            ctx.font = subFont(32);
+            pixelText(
+                ctx,
                 last.judgement.toUpperCase(),
                 CENTER_X,
                 TRACK_Y - 80 - age * 50,
+                'center',
             );
         }
     }

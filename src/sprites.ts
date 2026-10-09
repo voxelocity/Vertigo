@@ -63,3 +63,35 @@ export async function loadSprites(): Promise<void> {
 export function getSprites(): SpriteSet | null {
     return sprites;
 }
+
+// --- menu art ---------------------------------------------------------------
+
+/**
+ * Menu art is found by filename instead of imported one by one. Save
+ * `src/assets/ui/menu_logo.png` and the menu picks it up -- every placeholder
+ * on screen is labelled with the name and size it's waiting for. Pixel art
+ * should be .png; .jpg is fine for illustrations like album covers.
+ *
+ * Same ad-blocker rule as above applies to these names.
+ */
+const uiUrls = import.meta.glob<string>('./assets/ui/*.{png,jpg}', {
+    eager: true,
+    query: '?url',
+    import: 'default',
+});
+
+const uiSprites = new Map<string, HTMLImageElement>();
+
+/** Load every menu sprite that exists. Missing ones just stay placeholders. */
+export async function loadUiSprites(): Promise<void> {
+    await Promise.all(
+        Object.entries(uiUrls).map(async ([path, url]) => {
+            const name = path.slice(path.lastIndexOf('/') + 1).replace(/\.\w+$/, '');
+            uiSprites.set(name, await loadImage(url));
+        }),
+    );
+}
+
+export function getUiSprite(name: string): HTMLImageElement | null {
+    return uiSprites.get(name) ?? null;
+}

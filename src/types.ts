@@ -56,6 +56,49 @@ export type ChartFile = {
 };
 
 /**
+ * One page of the game: a menu, the level select, a song being played.
+ * screens.ts runs exactly one at a time and swaps them under the transition.
+ */
+export type Screen = {
+    /** Paint a whole frame. `now` is wall-clock seconds, for animation. */
+    draw(ctx: CanvasRenderingContext2D, now: number): void;
+    keydown?(event: KeyboardEvent): void;
+    /** In canvas pixels. Return true when over something clickable. */
+    pointermove?(x: number, y: number): boolean;
+    /** In canvas pixels. */
+    pointerdown?(x: number, y: number): void;
+    /** Fully revealed and in control. Start things here, not on creation. */
+    enter?(): void;
+    /** About to be covered. Stop anything that shouldn't outlive the screen. */
+    leave?(): void;
+};
+
+/** A stretch of a song the level select loops, in seconds into the song. */
+export type PreviewClip = {
+    audio: string;
+    start: number;
+    /** The fade out finishes here. */
+    end: number;
+};
+
+/** A song on the level select. */
+export type Level = {
+    title: string;
+    artist: string;
+    /** Chart JSON, e.g. 'charts/foo.json'. Null shows the card as locked. */
+    chart: string | null;
+    /** Pips on the card, out of 5. */
+    difficulty: number;
+    /**
+     * Card art: src/assets/ui/<art>.png or .jpg, cropped to fill the card.
+     * Null for a plain grey card.
+     */
+    art: string | null;
+    /** Looped while the card is selected. Null for silence. */
+    preview: PreviewClip | null;
+};
+
+/**
  * The entire game, in one object. If something is wrong, log this and read it.
  * Restarting is `state = newGameState(chart)` -- nothing is hidden elsewhere.
  */

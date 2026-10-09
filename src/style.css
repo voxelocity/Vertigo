@@ -6,11 +6,18 @@
   font-display: block;
 }
 
+@font-face {
+  font-family: 'Snow Bros Neue';
+  src: url('./assets/fonts/snow-bros-neue.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 
 :root {
   --bg: #12082d;
   --fg: #536a80;
-  --accent: #ff62a8;
 }
 
 * { box-sizing: border-box; }
@@ -33,36 +40,4 @@ body {
   display: block;
   max-height: 100vh;
   touch-action: none;
-}
-
-/* Click-to-play screen. Remove the .hidden class to dismiss it. */
-#overlay {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 1rem;
-  background: var(--bg);
-  text-align: center;
-}
-
-#overlay.hidden { display: none; }
-
-#overlay h1 {
-  font-family: 'Kiwi Soda', system-ui, sans-serif;
-  font-size: 64px;
-  letter-spacing: 0.1em;
-  text-indent: 0.1em;
-}
-
-.keys { margin: 0; opacity: 0.6; letter-spacing: 0.2em; }
-
-#start {
-  padding: 0.75rem 2rem;
-  font: inherit;
-  color: var(--bg);
-  background: var(--accent);
-  border: 0;
-  cursor: pointer;
 }

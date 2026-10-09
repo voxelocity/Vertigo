@@ -6,15 +6,10 @@
     <title>Vertigo</title>
   </head>
   <body>
+    <!-- Everything, menus included, is drawn on this. Browsers won't play
+         audio until a user gesture; the first menu keypress or click is it
+         (see unlock() in conductor.ts). -->
     <canvas id="game" width="960" height="540"></canvas>
-
-    <!-- Browsers refuse to start audio without a user gesture.
-         This overlay IS that gesture. Don't remove it. -->
-    <div id="overlay">
-      <h1>VERTIGO</h1>
-      <p class="keys">&larr; and &rarr;</p>
-      <button id="start">Click to play</button>
-    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

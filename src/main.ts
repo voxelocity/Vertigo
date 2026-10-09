@@ -1,15 +1,20 @@
 import './style.css';
-import { boot, startGame } from './game';
+import type { Screen } from './types';
+import { preload } from './conductor';
+import { createPlayScreen } from './game';
+import { createCredits, createOptions } from './info';
+import { createLevelSelect } from './levelselect';
+import { LEVELS } from './levels';
+import { createMainMenu } from './menu';
+import { goTo, start } from './screens';
+import { loadSprites, loadUiSprites } from './sprites';
 
 const WIDTH = 960;
 const HEIGHT = 540;
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game');
-const overlay = document.querySelector<HTMLDivElement>('#overlay');
-const startButton = document.querySelector<HTMLButtonElement>('#start');
-
-if (!canvas || !overlay || !startButton) {
-    throw new Error('index is missing game, overlay, or start');
+if (!canvas) {
+    throw new Error('index is missing the game canvas');
 }
 
 const ctx = canvas.getContext('2d');
@@ -29,20 +34,39 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 
-startButton.disabled = true;
-startButton.textContent = 'Loading...';
+// How the pages connect. Screens only know the callbacks they're handed,
+// so none of them import each other.
+const menu: Screen = createMainMenu({
+    play: () => goTo(levels),
+    options: () => goTo(options),
+    credits: () => goTo(credits),
+});
 
-boot()
-    .then(() => {
-        startButton.disabled = false;
-        startButton.textContent = 'Click to play';
-    })
-    .catch((err) => {
-        startButton.textContent = 'Failed to load';
-        console.error(err);
-    });
+const levels: Screen = createLevelSelect(LEVELS, {
+    back: () => goTo(menu),
+    play: (chart) => goTo(createPlayScreen(chart, () => goTo(levels))),
+});
 
-startButton.addEventListener('click', () => {
-    overlay.classList.add('hidden');
-    startGame(ctx);
+const options = createOptions(() => goTo(menu));
+const credits = createCredits(() => goTo(menu));
+
+// Fonts and sprites load behind the opening transition. If any of it fails the
+// menus still work -- every sprite has a fallback.
+const ready = Promise.all([
+    document.fonts.load('32px "Kiwi Soda"'),
+    document.fonts.load('16px "Snow Bros Neue"'),
+    loadSprites(),
+    loadUiSprites(),
+])
+    .catch((err) => console.error(err))
+    .then(() => menu);
+
+start(ctx, ready);
+
+// Decode the preview songs while the player is still on the menu, so the
+// level select can start playing the moment it opens.
+void ready.then(() => {
+    for (const level of LEVELS) {
+        if (level.preview) preload(level.preview.audio);
+    }
 });

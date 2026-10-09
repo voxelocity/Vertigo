@@ -1,54 +1,74 @@
-import type { Chart } from './types';
+import type { Screen } from './types';
 import { loadChart } from './chart';
-import { load as loadAudio, start as startAudio, songTime } from './conductor';
+import {
+    load as loadAudio,
+    start as startAudio,
+    stop as stopAudio,
+    songTime,
+} from './conductor';
 import { startInput } from './input';
 import { isComplete, newGameState, press, release, update } from './judge';
-import { draw } from './renderer';
-import { loadSprites } from './sprites';
+import { draw, resetEffects } from './renderer';
 
-const CHART_URL = 'charts/example.json';
-
-let chart: Chart | null = null;
-
-/** Load the chart and the song. Call once, behind the title screen. */
-export async function boot(): Promise<void> {
-    chart = await loadChart(CHART_URL);
-
-    // Decode the song and every sprite before the button unlocks, so nothing
-    // has to be fetched or decoded once the clock is running.
-    await Promise.all([loadAudio(chart.audio), loadSprites()]);
-}
-
-/** Begin a run. Must be called from a user gesture (the click handler). */
-export async function startGame(ctx: CanvasRenderingContext2D): Promise<void> {
-    if (!chart) {
-        throw new Error('startGame() called before boot() finished');
-    }
+/**
+ * Load a song and build the screen that plays it. Resolves once the audio is
+ * decoded, so the transition stays closed over the slow part.
+ */
+export async function createPlayScreen(
+    chartUrl: string,
+    onQuit: () => void,
+): Promise<Screen> {
+    // Fetched fresh every time. Judging marks the notes as it goes, so a
+    // played chart is used up -- a new copy is the clean slate.
+    const chart = await loadChart(chartUrl);
+    await loadAudio(chart.audio);
 
     const state = newGameState(chart);
+    resetEffects();
 
-    const stopInput = startInput({
-        onPress: (side, time) => press(state, side, time),
-        onRelease: (side, time) => release(state, side, time),
-    });
+    let stopInput: (() => void) | null = null;
+    let active = false;
 
-    let inputActive = true;
+    return {
+        draw(ctx) {
+            // Read the clock ONCE. Judging and drawing must agree on "now".
+            const t = songTime();
 
-    function frame() {
-        // Read the clock ONCE. Judging and drawing must agree on "now".
-        const t = songTime();
+            update(state, t);
+            draw(ctx, state, t);
 
-        update(state, t);
-        draw(ctx, state, t);
+            if (stopInput && isComplete(state)) {
+                stopInput();
+                stopInput = null;
+            }
+        },
 
-        if (inputActive && isComplete(state)) {
-            inputActive = false;
-            stopInput();
-        }
+        keydown(event) {
+            if (event.key === 'Escape') onQuit();
+        },
 
-        requestAnimationFrame(frame);
-    }
+        // The song starts once the transition has fully cleared, not under it.
+        async enter() {
+            active = true;
+            await startAudio();
 
-    await startAudio();
-    requestAnimationFrame(frame);
+            // Quit while the context was still waking up.
+            if (!active) {
+                stopAudio();
+                return;
+            }
+
+            stopInput = startInput({
+                onPress: (side, time) => press(state, side, time),
+                onRelease: (side, time) => release(state, side, time),
+            });
+        },
+
+        leave() {
+            active = false;
+            stopInput?.();
+            stopInput = null;
+            stopAudio();
+        },
+    };
 }

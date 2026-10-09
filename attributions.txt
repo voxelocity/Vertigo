@@ -11,3 +11,7 @@ Watch: https://ncs.lnk.to/lasttimeAT/youtube
 Font: Kiwi Soda by jeti
 Source:  https://fontenddev.com/fonts/kiwi-soda/
 Licence: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
+
+Font: Snow Bros Neue by Damien Gosset (https://www.sweeep.fr)
+Source:  https://www.dafont.com/snow-bros-neue.font
+Licence: 100% Free — free for personal and commercial use; may not be modified or sold
