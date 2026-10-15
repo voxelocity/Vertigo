@@ -5,3 +5,6 @@ A two-lane rhythm game for the browser that only uses 2 inputs, slice the notes 
 i have no idea why i called it vertigo because the game if very horizontal, maybe i should rename it to hortigo but that sounds bad if you say it out loud
 
 all sprite/art assets made by hand by me in photoshop.
+
+# PLAY AT
+https://voxelocity.github.io/Vertigo/
