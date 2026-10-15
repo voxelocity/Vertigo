@@ -12,6 +12,13 @@ export function readWaveform(out: Uint8Array<ArrayBuffer>): void {
     analyser.getByteTimeDomainData(out);
 }
 
+/**
+ * The song's volume knob, before the analyser -- so the waveform shrinks
+ * along with the sound when it fades out.
+ */
+const songGain = ctx.createGain();
+songGain.connect(analyser);
+
 let buffer: AudioBuffer | null = null;
 let source: AudioBufferSourceNode | null = null;
 let startTime = 0;
@@ -74,7 +81,11 @@ export async function start(): Promise<void> {
 
     source = ctx.createBufferSource();
     source.buffer = buffer;
-    source.connect(analyser);
+    source.connect(songGain);
+
+    // A fade from the last run may have left it at zero.
+    songGain.gain.cancelScheduledValues(ctx.currentTime);
+    songGain.gain.setValueAtTime(1, ctx.currentTime);
 
     // These two lines belong together. Anything between them is error.
     source.start();
@@ -90,6 +101,15 @@ export function stop(): void {
     running = false;
     source?.stop();
     source = null;
+}
+
+/** Ramp the song down to silence over `seconds`. It keeps playing, just quietly. */
+export function fadeOut(seconds: number): void {
+    if (!running) return;
+    const now = ctx.currentTime;
+    songGain.gain.cancelScheduledValues(now);
+    songGain.gain.setValueAtTime(songGain.gain.value, now);
+    songGain.gain.linearRampToValueAtTime(0, now + seconds);
 }
 
 /** Seconds since the song began. The only clock in this project. */

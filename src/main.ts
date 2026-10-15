@@ -6,6 +6,7 @@ import { createCredits, createOptions } from './info';
 import { createLevelSelect } from './levelselect';
 import { LEVELS } from './levels';
 import { createMainMenu } from './menu';
+import { createResults } from './results';
 import { goTo, start } from './screens';
 import { loadSprites, loadUiSprites } from './sprites';
 
@@ -44,8 +45,25 @@ const menu: Screen = createMainMenu({
 
 const levels: Screen = createLevelSelect(LEVELS, {
     back: () => goTo(menu),
-    play: (chart) => goTo(createPlayScreen(chart, () => goTo(levels))),
+    play: (chart) => play(chart),
 });
+
+/** Play a chart. When it ends, the results can retry it or go back. */
+function play(chart: string): void {
+    goTo(
+        createPlayScreen(
+            chart,
+            () => goTo(levels),
+            (state) =>
+                goTo(
+                    createResults(state, {
+                        retry: () => play(chart),
+                        back: () => goTo(levels),
+                    }),
+                ),
+        ),
+    );
+}
 
 const options = createOptions(() => goTo(menu));
 const credits = createCredits(() => goTo(menu));

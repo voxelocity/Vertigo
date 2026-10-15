@@ -5,7 +5,7 @@ export const LEVELS: Level[] = [
     {
         title: 'LAST TIME',
         artist: 'Milkoi',
-        chart: 'charts/example.json',
+        chart: 'charts/LastTime.json',
         difficulty: 2,
         art: 'card_last_time',
         preview: { audio: 'songs/last-time.mp3', start: 29, end: 50 },
@@ -13,7 +13,7 @@ export const LEVELS: Level[] = [
     {
         title: 'whatdoyousee',
         artist: 'prodBigMike!, GlitchCat',
-        chart: null,
+        chart: 'charts/whatdoyousee.json',
         difficulty: 3,
         art: 'card_whatdoyousee',
         preview: { audio: 'songs/whatdoyousee.mp3', start: 22, end: 43 },

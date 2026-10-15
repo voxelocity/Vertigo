@@ -1,0 +1,138 @@
+{
+  "title": "LAST TIME",
+  "artist": "Milkoi",
+  "audio": "songs/last-time.mp3",
+
+  "bpm": 120,
+  "offset": 0,
+
+  "notes": [
+    { "beat": 3, "side": "L", "length": 1.25 },
+
+    { "beat": 4.75, "side": "R", "length": 1.5 },
+
+    { "beat": 8, "side": "L" },
+    { "beat": 8.5, "side": "R" },
+    { "beat": 9.75, "side": "L" },
+    { "beat": 10.25, "side": "R" },
+
+    { "beat": 12.25, "side": "L", "length": 1.25 },
+    { "beat": 12.25, "side": "R", "length": 1.25 },
+    { "beat": 14, "side": "L", "length": 1.25 },
+    { "beat": 14, "side": "R", "length": 1.25 },
+
+    { "beat": 17.25, "side": "L", "length": 1 },
+    { "beat": 18.5, "side": "R" },
+    { "beat": 19.25, "side": "L" },
+    { "beat": 19.75, "side": "R" },
+
+    { "beat": 22.75, "side": "L", "length": 1 },
+    { "beat": 22.75, "side": "R", "length": 1 },
+
+    { "beat": 24.75, "side": "L", "length": 1.25 },
+    { "beat": 24.75, "side": "R", "length": 1.25 },
+    { "beat": 27.5, "side": "L" },
+
+    { "beat": 28, "side": "R" },
+    { "beat": 29.25, "side": "L" },
+    { "beat": 29.75, "side": "R" },
+
+    { "beat": 32.25, "side": "L", "length": 1.75 },
+    { "beat": 34.75, "side": "R", "length": 1.5 },
+
+    { "beat": 37, "side": "L", "length": 1 },
+    { "beat": 38.25, "side": "R" },
+    { "beat": 38.75, "side": "L", "length": 1.75 },
+    { "beat": 39.5, "side": "R" },
+
+    { "beat": 42.25, "side": "R", "length": 0.75 },
+    { "beat": 43.5, "side": "L", "length": 1 },
+
+    { "beat": 44.5, "side": "R", "length": 1.25 },
+    { "beat": 46, "side": "L" },
+    { "beat": 47, "side": "L" },
+
+    { "beat": 48.25, "side": "R" },
+    { "beat": 49.5, "side": "L", "length": 0.75 },
+    { "beat": 49.5, "side": "R" },
+
+    { "beat": 52, "side": "L" },
+    { "beat": 53.25, "side": "L" },
+    { "beat": 54.5, "side": "L" },
+    { "beat": 55.75, "side": "R", "length": 1.25 },
+
+    { "beat": 57, "side": "L" },
+    { "beat": 58.25, "side": "R" },
+    { "beat": 59.5, "side": "R" },
+
+    { "beat": 61.75, "side": "L" },
+    { "beat": 62.5, "side": "L" },
+    { "beat": 63.25, "side": "R" },
+
+    { "beat": 64, "side": "R" },
+    { "beat": 66.5, "side": "L", "length": 0.75 },
+    { "beat": 67.5, "side": "R" },
+
+    { "beat": 68.75, "side": "R", "length": 0.75 },
+    { "beat": 69.75, "side": "L" },
+    { "beat": 71.5, "side": "L" },
+
+    { "beat": 72.25, "side": "R" },
+    { "beat": 73.25, "side": "L" },
+    { "beat": 73.75, "side": "R" },
+
+    { "beat": 76.25, "side": "R" },
+    { "beat": 77, "side": "L" },
+    { "beat": 78, "side": "R", "length": 1.25 },
+    { "beat": 79, "side": "L" },
+
+    { "beat": 81.5, "side": "L", "length": 1 },
+    { "beat": 81.5, "side": "R", "length": 1 },
+
+    { "beat": 84, "side": "L" },
+    { "beat": 84, "side": "R" },
+    { "beat": 86.25, "side": "L", "length": 0.75 },
+    { "beat": 86.5, "side": "R", "length": 2.75 },
+    { "beat": 87.5, "side": "L" },
+
+    { "beat": 88.25, "side": "L" },
+    { "beat": 89, "side": "L" },
+    { "beat": 91.25, "side": "L", "length": 0.75 },
+
+    { "beat": 92.5, "side": "R", "length": 0.75 },
+    { "beat": 93.75, "side": "L", "length": 0.75 },
+    { "beat": 95, "side": "R", "length": 0.75 },
+
+    { "beat": 96.25, "side": "L" },
+    { "beat": 96.25, "side": "R" },
+    { "beat": 98.25, "side": "L" },
+    { "beat": 98.25, "side": "R" },
+
+    { "beat": 101.25, "side": "L", "length": 1.75 },
+    { "beat": 102, "side": "R" },
+    { "beat": 102.5, "side": "R" },
+    { "beat": 103, "side": "R" },
+
+    { "beat": 104.25, "side": "L" },
+    { "beat": 104.25, "side": "R" },
+    { "beat": 104.75, "side": "L" },
+    { "beat": 104.75, "side": "R" },
+    { "beat": 106, "side": "R", "length": 1 },
+    { "beat": 107, "side": "L" },
+    { "beat": 107.75, "side": "L", "length": 1 },
+
+    { "beat": 108.75, "side": "R" },
+    { "beat": 110, "side": "L", "length": 1 },
+    { "beat": 111, "side": "R", "length": 1 },
+
+    { "beat": 113, "side": "L", "length": 1 },
+    { "beat": 115, "side": "R", "length": 1 },
+
+    { "beat": 116, "side": "L", "length": 1 },
+    { "beat": 117, "side": "L" },
+    { "beat": 117.5, "side": "R" },
+    { "beat": 118, "side": "L" },
+    { "beat": 119.5, "side": "L", "length": 1 },
+    { "beat": 119.5, "side": "R", "length": 1 }
+  ]
+}
