@@ -17,7 +17,40 @@ export function readWaveform(out: Uint8Array<ArrayBuffer>): void {
  * along with the sound when it fades out.
  */
 const songGain = ctx.createGain();
-songGain.connect(analyser);
+
+/**
+ * Wide open normally. A miss slams it shut for a moment, so the music goes
+ * muffled -- you hear the mistake as well as see it.
+ */
+const songFilter = ctx.createBiquadFilter();
+songFilter.type = 'lowpass';
+songFilter.frequency.value = 20000;
+
+songGain.connect(songFilter);
+songFilter.connect(analyser);
+
+/** Where sound effects plug in. Through the analyser, so hits kick the waveform. */
+export const sfxOut = ctx.createGain();
+sfxOut.gain.value = 0.6;
+sfxOut.connect(analyser);
+
+/** The one AudioContext, for anything that synthesises its own sound. */
+export function audioContext(): AudioContext {
+    return ctx;
+}
+
+const MUFFLE_FREQ = 650;
+const OPEN_FREQ = 20000;
+
+/** Muffle the song, then open it back up over `seconds`. */
+export function muffle(seconds = 0.45): void {
+    const now = ctx.currentTime;
+    const f = songFilter.frequency;
+    f.cancelScheduledValues(now);
+    f.setValueAtTime(f.value, now);
+    f.exponentialRampToValueAtTime(MUFFLE_FREQ, now + 0.015);
+    f.exponentialRampToValueAtTime(OPEN_FREQ, now + 0.015 + seconds);
+}
 
 let buffer: AudioBuffer | null = null;
 let source: AudioBufferSourceNode | null = null;
@@ -86,6 +119,8 @@ export async function start(): Promise<void> {
     // A fade from the last run may have left it at zero.
     songGain.gain.cancelScheduledValues(ctx.currentTime);
     songGain.gain.setValueAtTime(1, ctx.currentTime);
+    songFilter.frequency.cancelScheduledValues(ctx.currentTime);
+    songFilter.frequency.setValueAtTime(OPEN_FREQ, ctx.currentTime);
 
     // These two lines belong together. Anything between them is error.
     source.start();

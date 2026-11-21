@@ -30,6 +30,28 @@ export type Note = {
     judgement: Judgement | null;
 };
 
+/**
+ * Something the judge decided, for the sound and the screen to react to.
+ * The judge only records these; game.ts hands them on and clears the list.
+ *
+ *   hit      a note's head was pressed (a tap, or the start of a hold)
+ *   holdEnd  a hold was seen through to the end
+ *   miss     a note went past without being pressed
+ *   drop     a hold was let go too early
+ *   stray    a press with nothing in range
+ */
+export type JudgeEvent = {
+    kind: 'hit' | 'holdEnd' | 'miss' | 'drop' | 'stray';
+    judgement: Judgement;
+    side: Side;
+    /** The note it was about. Null for a stray press. */
+    note: Note | null;
+    /** Song seconds. */
+    at: number;
+    /** The combo this event broke, or 0 if it didn't break one. */
+    lostCombo: number;
+};
+
 /** A chart after loading: times in seconds, notes sorted. */
 export type Chart = {
     title: string;
@@ -112,4 +134,6 @@ export type GameState = {
     counts: Record<Judgement, number>;
     /** Most recent verdict, for the popup. `at` is in song seconds. */
     lastJudgement: { judgement: Judgement; at: number } | null;
+    /** Judgements not yet reacted to. game.ts drains this. */
+    events: JudgeEvent[];
 };

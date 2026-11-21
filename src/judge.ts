@@ -1,4 +1,4 @@
-import type { Chart, GameState, Judgement, Note, Side } from './types';
+import type { Chart, GameState, JudgeEvent, Judgement, Note, Side } from './types';
 
 // ---------------------------------------------------------------------------
 // Tuning. Everything you'll want to fiddle with lives here, in seconds.
@@ -39,6 +39,7 @@ export function newGameState(chart: Chart): GameState {
         maxCombo: 0,
         counts: { perfect: 0, good: 0, miss: 0 },
         lastJudgement: null,
+        events: [],
     };
 }
 
@@ -51,7 +52,7 @@ export function newGameState(chart: Chart): GameState {
 export function press(state: GameState, side: Side, time: number): void {
     const note = nearestPending(state, side, time);
     if (!note) {
-        registerStray(state, time);
+        registerStray(state, side, time);
         return;
     }
 
@@ -61,9 +62,12 @@ export function press(state: GameState, side: Side, time: number): void {
 
     if (note.duration === 0) {
         note.state = 'hit';
-        award(state, SCORE[judgement], judgement, time);
+        award(state, SCORE[judgement], judgement, note, time, 'hit');
     } else {
+        // Not scored yet, but the press landed -- say so now, not at the end.
         note.state = 'holding';
+        state.lastJudgement = { judgement, at: time };
+        emit(state, 'hit', judgement, note.side, note, time, 0);
     }
 }
 
@@ -83,7 +87,7 @@ export function release(state: GameState, side: Side, time: number): void {
             completeHold(state, note, time);
         } else {
             note.state = 'dropped';
-            registerMiss(state, time);
+            registerMiss(state, note, time, 'drop');
         }
         return;
     }
@@ -104,7 +108,7 @@ export function update(state: GameState, songTime: number): void {
 
         if (note.state === 'pending' && songTime > note.time + GOOD_WINDOW) {
             note.state = 'missed';
-            registerMiss(state, songTime);
+            registerMiss(state, note, songTime, 'miss');
         } else if (
             note.state === 'holding' &&
             songTime >= note.time + note.duration
@@ -164,26 +168,48 @@ function nearestPending(
 function completeHold(state: GameState, note: Note, time: number): void {
     const judgement = note.judgement ?? 'good';
     note.state = 'hit';
-    award(state, SCORE[judgement] + HOLD_BONUS, judgement, time);
+    award(state, SCORE[judgement] + HOLD_BONUS, judgement, note, time, 'holdEnd');
 }
 
 function award(
     state: GameState,
     points: number,
     judgement: Judgement,
+    note: Note,
     time: number,
+    kind: 'hit' | 'holdEnd',
 ): void {
     state.score += points;
     state.combo += 1;
     state.maxCombo = Math.max(state.maxCombo, state.combo);
     state.counts[judgement] += 1;
     state.lastJudgement = { judgement, at: time };
+    emit(state, kind, judgement, note.side, note, time, 0);
 }
 
-function registerMiss(state: GameState, time: number): void {
+function registerMiss(
+    state: GameState,
+    note: Note,
+    time: number,
+    kind: 'miss' | 'drop',
+): void {
+    const lost = state.combo;
     state.combo = 0;
     state.counts.miss += 1;
     state.lastJudgement = { judgement: 'miss', at: time };
+    emit(state, kind, 'miss', note.side, note, time, lost);
+}
+
+function emit(
+    state: GameState,
+    kind: JudgeEvent['kind'],
+    judgement: Judgement,
+    side: Side,
+    note: Note | null,
+    at: number,
+    lostCombo: number,
+): void {
+    state.events.push({ kind, judgement, side, note, at, lostCombo });
 }
 
 /**
@@ -193,10 +219,12 @@ function registerMiss(state: GameState, time: number): void {
  * Deliberately does NOT touch `counts` -- that's the tally of how the chart
  * went, and a stray press didn't invent a note to miss.
  */
-function registerStray(state: GameState, time: number): void {
+function registerStray(state: GameState, side: Side, time: number): void {
+    const lost = state.combo;
     state.score = Math.max(0, state.score - STRAY_PENALTY);
     state.combo = 0;
     state.lastJudgement = { judgement: 'miss', at: time };
+    emit(state, 'stray', 'miss', side, null, time, lost);
 }
 
 function isResolved(note: Note): boolean {

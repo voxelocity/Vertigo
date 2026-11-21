@@ -9,7 +9,8 @@ import {
 } from './conductor';
 import { startInput } from './input';
 import { isComplete, newGameState, press, release, update } from './judge';
-import { draw, resetEffects } from './renderer';
+import { draw, react, resetEffects } from './renderer';
+import { playSfx } from './sfx';
 
 /** Seconds after the last note before the music starts to fade. */
 const END_DELAY = 1.0;
@@ -42,12 +43,26 @@ export async function createPlayScreen(
     let fading = false;
     let finished = false;
 
+    /**
+     * Hand whatever the judge just decided to the speakers and the screen.
+     * Run straight after every press, release and update, so a hit sounds
+     * the moment the key goes down rather than on the next frame.
+     */
+    function flush(): void {
+        for (const event of state.events) {
+            playSfx(event);
+            react(event);
+        }
+        state.events.length = 0;
+    }
+
     return {
         draw(ctx) {
             // Read the clock ONCE. Judging and drawing must agree on "now".
             const t = songTime();
 
             update(state, t);
+            flush();
             draw(ctx, state, t);
 
             if (completedAt === null && isComplete(state)) {
@@ -85,8 +100,14 @@ export async function createPlayScreen(
             }
 
             stopInput = startInput({
-                onPress: (side, time) => press(state, side, time),
-                onRelease: (side, time) => release(state, side, time),
+                onPress: (side, time) => {
+                    press(state, side, time);
+                    flush();
+                },
+                onRelease: (side, time) => {
+                    release(state, side, time);
+                    flush();
+                },
             });
         },
 
