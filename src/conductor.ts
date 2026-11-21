@@ -18,6 +18,9 @@ export function readWaveform(out: Uint8Array<ArrayBuffer>): void {
  */
 const songGain = ctx.createGain();
 
+/** The song's volume during play, 0..1. Kept under the sound effects. */
+const MUSIC_VOLUME = 0.55;
+
 /**
  * Wide open normally. A miss slams it shut for a moment, so the music goes
  * muffled -- you hear the mistake as well as see it.
@@ -31,7 +34,7 @@ songFilter.connect(analyser);
 
 /** Where sound effects plug in. Through the analyser, so hits kick the waveform. */
 export const sfxOut = ctx.createGain();
-sfxOut.gain.value = 0.6;
+sfxOut.gain.value = 1.2;
 sfxOut.connect(analyser);
 
 /** The one AudioContext, for anything that synthesises its own sound. */
@@ -118,7 +121,7 @@ export async function start(): Promise<void> {
 
     // A fade from the last run may have left it at zero.
     songGain.gain.cancelScheduledValues(ctx.currentTime);
-    songGain.gain.setValueAtTime(1, ctx.currentTime);
+    songGain.gain.setValueAtTime(MUSIC_VOLUME, ctx.currentTime);
     songFilter.frequency.cancelScheduledValues(ctx.currentTime);
     songFilter.frequency.setValueAtTime(OPEN_FREQ, ctx.currentTime);
 

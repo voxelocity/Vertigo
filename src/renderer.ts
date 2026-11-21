@@ -127,41 +127,34 @@ const lastSlash: Record<Side, number> = { L: -Infinity, R: -Infinity };
 // Everything below reacts to JudgeEvents. All of it is positioned from song
 // time, so it freezes along with everything else when the song stops.
 
-/** Pixels per second squared pulling sparks and wrecked notes down. */
+/** Pixels per second squared pulling sparks and missed notes down. */
 const SPARK_GRAVITY = 900;
 const WRECK_GRAVITY = 1400;
 
-/** Hard cap, so a long hold can't pile up sparks forever. */
-const MAX_SPARKS = 400;
-
 /** How long a missed note takes to fall away. */
-const WRECK_LIFE = 0.6;
+const WRECK_LIFE = 0.8;
 
-/** How long a hit marker glows after a judgement. */
+/** What a missed note turns into. */
+const MISSED_NOTE = '#7a7f85';
+
+/** How long a hit marker glows red after a miss. */
 const MARKER_FLASH = 0.22;
 
-/** How long the screen shakes. Strength is set per event. */
-const SHAKE_TIME = 0.25;
-
-/** How long the red edge glow lasts after a miss. */
-const MISS_GLOW_TIME = 0.35;
+/** How long the screen shakes, and how hard for each thing, in pixels. */
+const SHAKE_TIME = 0.2;
+const PERFECT_SHAKE = 2.5;
 
 /** How long the character jolts after a miss. */
 const FLINCH_TIME = 0.25;
 
-/** The judgement text starts this much bigger and snaps down to size. */
+/** The MISS text starts this much bigger and snaps down to size. */
 const POPUP_POP = 0.6;
 const POPUP_POP_TIME = 0.12;
-
-/** The combo number swells by this on each hit. */
-const COMBO_BUMP = 0.35;
-const COMBO_BUMP_TIME = 0.15;
 
 /** A combo at least this long gets a send-off when it breaks. */
 const BROKEN_COMBO_MIN = 5;
 const BROKEN_COMBO_LIFE = 0.6;
 
-const MISS_RGB = '255, 107, 107';
 
 // --- feedback state -------------------------------------------------------------
 
@@ -176,17 +169,6 @@ type Spark = {
     size: number;
 };
 
-/** An outline square bursting out of the hit point. */
-type Ring = {
-    x: number;
-    colour: string;
-    bornAt: number;
-    reach: number;
-    life: number;
-    /** Radians. A quarter-turn diamond reads differently from the square. */
-    angle: number;
-};
-
 /** A missed note, or the unplayed rest of a dropped hold, falling off the track. */
 type Wreck = {
     side: Side;
@@ -196,29 +178,17 @@ type Wreck = {
     /** Screen x of the head, or null when there's no head left (a drop). */
     headX: number | null;
     bornAt: number;
-    spin: number;
 };
-
-type Flash = { at: number; colour: string };
 
 const sparks: Spark[] = [];
-const rings: Ring[] = [];
 const wrecks: Wreck[] = [];
 
-const markerFlash: Record<Side, Flash> = {
-    L: { at: -Infinity, colour: MARKER },
-    R: { at: -Infinity, colour: MARKER },
-};
+/** When each side's marker last flashed red. */
+const missFlashAt: Record<Side, number> = { L: -Infinity, R: -Infinity };
 
 let shake = { at: -Infinity, strength: 0 };
-let missGlowAt = -Infinity;
 let flinchAt = -Infinity;
-let comboBumpAt = -Infinity;
-let comboBumpColour = TEXT;
 let brokenCombo: { value: number; at: number } | null = null;
-
-/** Song time of the previous frame, so holds only spray sparks while it moves. */
-let lastFrameAt = -Infinity;
 
 // ---------------------------------------------------------------------------
 
@@ -229,63 +199,36 @@ export function resetEffects(): void {
     lastSlash.R = -Infinity;
 
     sparks.length = 0;
-    rings.length = 0;
     wrecks.length = 0;
-    markerFlash.L = { at: -Infinity, colour: MARKER };
-    markerFlash.R = { at: -Infinity, colour: MARKER };
+    missFlashAt.L = -Infinity;
+    missFlashAt.R = -Infinity;
     shake = { at: -Infinity, strength: 0 };
-    missGlowAt = -Infinity;
     flinchAt = -Infinity;
-    comboBumpAt = -Infinity;
     brokenCombo = null;
-    lastFrameAt = -Infinity;
 }
 
 /** Something was just judged. Kick off whatever it looks like. */
 export function react(event: JudgeEvent): void {
     const { side, at } = event;
     const x = hitXOf(side);
-    const rgb = rgbOf(side);
 
+    // Only a Perfect gets sparks and a little shake.
     if (event.kind === 'hit' || event.kind === 'holdEnd') {
-        const perfect = event.judgement === 'perfect';
-        const colour = JUDGEMENT_COLOUR[event.judgement];
-
-        burst(x, TRACK_Y, at, perfect ? 22 : 12, perfect ? 1 : 0.7, [
-            `rgb(${rgb})`,
-            colour,
-            '#ffffff',
-        ]);
-        rings.push({ x, colour, bornAt: at, reach: perfect ? 60 : 40, life: 0.28, angle: 0 });
-        if (perfect) {
-            rings.push({ x, colour: '#ffffff', bornAt: at + 0.03, reach: 40, life: 0.22, angle: Math.PI / 4 });
-            kick(2.5, at);
-        }
-        markerFlash[side] = { at, colour };
-
-        // The start of a hold isn't scored yet, so the combo hasn't moved.
-        const scored = event.kind === 'holdEnd' || event.note?.duration === 0;
-        if (scored) {
-            comboBumpAt = at;
-            comboBumpColour = colour;
+        if (event.judgement === 'perfect') {
+            burst(x, TRACK_Y, at, 10, [`rgb(${rgbOf(side)})`, '#ffffff']);
+            kick(PERFECT_SHAKE, at);
         }
         return;
     }
 
     // Everything else is some kind of failure.
-    markerFlash[side] = { at, colour: JUDGEMENT_COLOUR.miss };
+    missFlashAt[side] = at;
     if (event.lostCombo >= BROKEN_COMBO_MIN) {
         brokenCombo = { value: event.lostCombo, at };
     }
 
-    if (event.kind === 'stray') {
-        kick(3, at);
-        burst(x, TRACK_Y, at, 6, 0.4, [`rgb(${MISS_RGB})`, '#6a8694']);
-        return;
-    }
+    if (event.kind === 'stray') return;
 
-    kick(8, at);
-    missGlowAt = at;
     flinchAt = at;
     if (event.note) wreck(event, event.note);
 }
@@ -298,30 +241,22 @@ export function draw(
     collectSlices(state, songTime);
     trackSlashes(state, songTime);
 
-    const holding = holdingSides(state, songTime);
-    if (songTime > lastFrameAt) {
-        for (const side of holding) holdSparks(side, songTime);
-    }
-    lastFrameAt = songTime;
-
     drawBackground(ctx);
 
-    // Everything on the stage shakes; the HUD stays put so it stays readable.
+    // The stage shakes; the HUD stays put so it stays readable.
     const [sx, sy] = shakeOffset(songTime);
     ctx.save();
     ctx.translate(sx, sy);
     drawTrack(ctx);
     drawWave(ctx);
-    drawMarkers(ctx, songTime, holding);
+    drawMarkers(ctx, songTime);
     drawWrecks(ctx, songTime);
     drawNotes(ctx, state, songTime);
     drawSlices(ctx, songTime);
-    drawRings(ctx, songTime);
     drawPlayer(ctx, state, songTime);
     drawSparks(ctx, songTime);
     ctx.restore();
 
-    drawMissGlow(ctx, songTime);
     drawHud(ctx, state, songTime);
 }
 
@@ -410,48 +345,29 @@ function drawTrack(ctx: CanvasRenderingContext2D): void {
 }
 
 /**
- * The two ticks showing where a note is meant to come to rest. They flare in
- * the judgement's colour when something lands, and pulse while held.
+ * The two ticks showing where a note is meant to come to rest. A miss makes
+ * that side's tick flare red.
  */
-function drawMarkers(
-    ctx: CanvasRenderingContext2D,
-    songTime: number,
-    holding: Set<Side>,
-): void {
+function drawMarkers(ctx: CanvasRenderingContext2D, songTime: number): void {
     for (const side of ['L', 'R'] as const) {
         const x = hitXOf(side);
 
         ctx.fillStyle = MARKER;
         ctx.fillRect(x - MARKER_W / 2, TRACK_Y - MARKER_H / 2, MARKER_W, MARKER_H);
 
-        const flash = markerFlash[side];
-        const k = fade(songTime - flash.at, MARKER_FLASH);
-        const hold = holding.has(side) ? 0.45 + 0.2 * Math.sin(songTime * 30) : 0;
+        const k = fade(songTime - missFlashAt[side], MARKER_FLASH);
+        if (k <= 0) continue;
 
-        if (hold > 0) {
-            glowBar(ctx, x, MARKER_W + 2, MARKER_H + 6, `rgb(${rgbOf(side)})`, hold);
-        }
-        if (k > 0) {
-            glowBar(ctx, x, MARKER_W + 6 * k, MARKER_H + 26 * k, flash.colour, k);
-        }
+        const w = MARKER_W + 6 * k;
+        const h = MARKER_H + 26 * k;
+        ctx.save();
+        ctx.globalAlpha = k;
+        ctx.fillStyle = JUDGEMENT_COLOUR.miss;
+        ctx.shadowColor = JUDGEMENT_COLOUR.miss;
+        ctx.shadowBlur = 18;
+        ctx.fillRect(x - w / 2, TRACK_Y - h / 2, w, h);
+        ctx.restore();
     }
-}
-
-function glowBar(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    w: number,
-    h: number,
-    colour: string,
-    alpha: number,
-): void {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = colour;
-    ctx.shadowColor = colour;
-    ctx.shadowBlur = 18;
-    ctx.fillRect(x - w / 2, TRACK_Y - h / 2, w, h);
-    ctx.restore();
 }
 
 /**
@@ -497,9 +413,11 @@ function drawPlayer(
     const sprite = poseFor(state, songTime);
 
     // A miss knocks the character about for a moment.
+    // Checked first: before any miss the age is Infinity, and sin(Infinity)
+    // is NaN, which would draw the sprite nowhere at all.
     const flinchAge = songTime - flinchAt;
-    const jolt =
-        Math.sin(flinchAge * 90) * 6 * fade(flinchAge, FLINCH_TIME);
+    const flinch = fade(flinchAge, FLINCH_TIME);
+    const jolt = flinch > 0 ? Math.sin(flinchAge * 90) * 6 * flinch : 0;
 
     if (sprite) {
         // Pixel art: no interpolation, and land on whole pixels.
@@ -701,20 +619,14 @@ function trackSlashes(state: GameState, songTime: number): void {
 
 /** Is a hold in progress? Drives the braced stance. */
 function anyHolding(state: GameState, songTime: number): boolean {
-    return holdingSides(state, songTime).size > 0;
-}
-
-/** Which sides have a hold in progress right now. */
-function holdingSides(state: GameState, songTime: number): Set<Side> {
     const notes = state.chart.notes;
-    const sides = new Set<Side>();
 
     for (let i = state.cursor; i < notes.length; i++) {
         const note = notes[i];
         if (note.time > songTime) break;
-        if (note.state === 'holding') sides.add(note.side);
+        if (note.state === 'holding') return true;
     }
-    return sides;
+    return false;
 }
 
 // --- feedback -------------------------------------------------------------------
@@ -726,56 +638,28 @@ function fade(age: number, life: number): number {
     return k * k;
 }
 
-function pick<T>(items: T[]): T {
-    return items[Math.floor(Math.random() * items.length)];
-}
-
-/** Throw a handful of square sparks out from a point. */
+/** Throw a few square sparks out from a point. */
 function burst(
     x: number,
     y: number,
     at: number,
     count: number,
-    power: number,
     colours: string[],
 ): void {
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = (140 + Math.random() * 280) * power;
-        addSpark({
+        const speed = 100 + Math.random() * 180;
+        sparks.push({
             x,
             y,
             vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 120 * power,
+            vy: Math.sin(angle) * speed - 80,
             bornAt: at,
-            life: 0.25 + Math.random() * 0.25,
-            colour: pick(colours),
-            size: 2 * Math.ceil(Math.random() * 2) + 1,
-        });
-    }
-}
-
-/** A hold grinds a thin trickle of sparks off the hit point. */
-function holdSparks(side: Side, songTime: number): void {
-    const dir = dirOf(side);
-    for (let i = 0; i < 2; i++) {
-        addSpark({
-            x: hitXOf(side),
-            y: TRACK_Y + (Math.random() - 0.5) * HOLD_HEIGHT,
-            // Sprayed back the way the notes came from.
-            vx: -dir * (60 + Math.random() * 160),
-            vy: -60 - Math.random() * 180,
-            bornAt: songTime,
             life: 0.2 + Math.random() * 0.2,
-            colour: Math.random() < 0.3 ? '#ffffff' : `rgb(${rgbOf(side)})`,
-            size: 2,
+            colour: colours[Math.floor(Math.random() * colours.length)],
+            size: Math.random() < 0.5 ? 2 : 4,
         });
     }
-}
-
-function addSpark(spark: Spark): void {
-    if (sparks.length >= MAX_SPARKS) sparks.shift();
-    sparks.push(spark);
 }
 
 function drawSparks(ctx: CanvasRenderingContext2D, songTime: number): void {
@@ -799,33 +683,7 @@ function drawSparks(ctx: CanvasRenderingContext2D, songTime: number): void {
     ctx.restore();
 }
 
-/** Outline squares bursting out of the hit point. */
-function drawRings(ctx: CanvasRenderingContext2D, songTime: number): void {
-    for (let i = rings.length - 1; i >= 0; i--) {
-        const ring = rings[i];
-        const age = songTime - ring.bornAt;
-        if (age < 0) continue;
-        if (age > ring.life) {
-            rings.splice(i, 1);
-            continue;
-        }
-
-        const t = age / ring.life;
-        const ease = 1 - (1 - t) * (1 - t) * (1 - t);
-        const r = NOTE_SIZE / 2 + ring.reach * ease;
-
-        ctx.save();
-        ctx.translate(ring.x, TRACK_Y);
-        ctx.rotate(ring.angle);
-        ctx.globalAlpha = 1 - t;
-        ctx.strokeStyle = ring.colour;
-        ctx.lineWidth = 1 + 5 * (1 - t);
-        ctx.strokeRect(-r, -r, r * 2, r * 2);
-        ctx.restore();
-    }
-}
-
-/** Freeze a missed note where it died, so it can tumble off the track. */
+/** Freeze a missed note where it died, so it can drop off the track. */
 function wreck(event: JudgeEvent, note: Note): void {
     const at = event.at;
     const hitX = hitXOf(note.side);
@@ -842,7 +700,6 @@ function wreck(event: JudgeEvent, note: Note): void {
         barTo: end > from ? toX(end) : toX(from),
         headX: event.kind === 'miss' ? toX(note.time) : null,
         bornAt: at,
-        spin: (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 4),
     });
 }
 
@@ -856,41 +713,20 @@ function drawWrecks(ctx: CanvasRenderingContext2D, songTime: number): void {
             continue;
         }
 
-        const t = age / WRECK_LIFE;
-        const dir = dirOf(w.side);
+        // Straight down, solid grey, until it's off the bottom of the screen.
         const drop = 0.5 * WRECK_GRAVITY * age * age;
-        const drift = dir * 60 * age;
-        const alpha = 1 - t;
-
-        // A beat of solid red so the miss registers, then the note's own
-        // colour, dimmed, as it falls away.
-        const fill =
-            age < 0.08
-                ? `rgba(${MISS_RGB}, ${alpha})`
-                : `rgba(${rgbOf(w.side)}, ${alpha * 0.45})`;
-        const edge = `rgba(${MISS_RGB}, ${alpha})`;
-
-        ctx.save();
-        ctx.fillStyle = fill;
-        ctx.strokeStyle = edge;
-        ctx.lineWidth = 2;
+        ctx.fillStyle = MISSED_NOTE;
 
         const barW = Math.abs(w.barTo - w.barFrom);
         if (barW > 0.5) {
-            const left = Math.min(w.barFrom, w.barTo) + drift;
-            const top = TRACK_Y - HOLD_HEIGHT / 2 + drop;
-            ctx.fillRect(left, top, barW, HOLD_HEIGHT);
-            ctx.strokeRect(left, top, barW, HOLD_HEIGHT);
+            const left = Math.min(w.barFrom, w.barTo);
+            ctx.fillRect(left, TRACK_Y - HOLD_HEIGHT / 2 + drop, barW, HOLD_HEIGHT);
         }
 
         if (w.headX !== null) {
             const half = NOTE_SIZE / 2;
-            ctx.translate(w.headX + drift, TRACK_Y + drop);
-            ctx.rotate(w.spin * age);
-            ctx.fillRect(-half, -half, NOTE_SIZE, NOTE_SIZE);
-            ctx.strokeRect(-half, -half, NOTE_SIZE, NOTE_SIZE);
+            ctx.fillRect(w.headX - half, TRACK_Y - half + drop, NOTE_SIZE, NOTE_SIZE);
         }
-        ctx.restore();
     }
 }
 
@@ -904,24 +740,6 @@ function shakeOffset(songTime: number): [number, number] {
     const k = shake.strength * fade(songTime - shake.at, SHAKE_TIME);
     if (k <= 0) return [0, 0];
     return [(Math.random() * 2 - 1) * k, (Math.random() * 2 - 1) * k];
-}
-
-/** A red glow creeping in from the edges after a miss. */
-function drawMissGlow(ctx: CanvasRenderingContext2D, songTime: number): void {
-    const k = fade(songTime - missGlowAt, MISS_GLOW_TIME);
-    if (k <= 0) return;
-
-    const glow = ctx.createRadialGradient(
-        CENTER_X, HEIGHT / 2, HEIGHT * 0.35,
-        CENTER_X, HEIGHT / 2, WIDTH * 0.62,
-    );
-    glow.addColorStop(0, `rgba(${MISS_RGB}, 0)`);
-    glow.addColorStop(1, `rgba(${MISS_RGB}, ${0.4 * k})`);
-
-    ctx.save();
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.restore();
 }
 
 /** The two halves of a cut note, drifting apart and fading out. */
@@ -969,16 +787,8 @@ function drawHud(
     pixelText(ctx, `SCORE ${state.score}`, 24, 44);
 
     if (state.combo > 1) {
-        // Swell on every hit, flashing the colour of the judgement.
-        const bump = fade(songTime - comboBumpAt, COMBO_BUMP_TIME);
-        ctx.save();
-        ctx.translate(CENTER_X, 110);
-        ctx.scale(1 + COMBO_BUMP * bump, 1 + COMBO_BUMP * bump);
-        ctx.fillStyle = bump > 0.3 ? comboBumpColour : TEXT;
         ctx.font = subFont(48);
-        pixelText(ctx, `${state.combo}`, 0, 0, 'center');
-        ctx.restore();
-
+        pixelText(ctx, `${state.combo}`, CENTER_X, 110, 'center');
         ctx.font = subFont(16);
         pixelText(ctx, 'COMBO', CENTER_X, 134, 'center');
     }
@@ -989,9 +799,9 @@ function drawHud(
     if (last) {
         const age = songTime - last.at;
         if (age >= 0 && age < POPUP_TIME) {
-            // Punch in big, snap down to size, then fade and drift upwards.
-            const pop = 1 + POPUP_POP * fade(age, POPUP_POP_TIME);
+            // Fade and drift upwards. A MISS also punches in big and shakes.
             const miss = last.judgement === 'miss';
+            const pop = miss ? 1 + POPUP_POP * fade(age, POPUP_POP_TIME) : 1;
             const wobble = miss
                 ? Math.sin(age * 70) * 8 * (1 - age / POPUP_TIME)
                 : 0;
